@@ -1,0 +1,181 @@
+---
+title: "MR Bayesian Model Averaging"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+<!-- 
+Run this 'development' chunk
+
+Store every call to library() that you need to run chunks line by line, as in a classical Rmd for analysis
+-->
+
+```{r development, include=FALSE}
+library(testthat)
+library(devtools)
+```
+
+<!--
+# Description of your package
+
+This will fill the description of your package.
+Fill and run the content of this chunk, before anything else. 
+
+Note: when you will use other flat templates, this part will be in a separate file. Do not be surprised!
+--> 
+
+```{r description, eval=FALSE}
+# Describe your package
+fusen::fill_description(
+  pkg = here::here(),
+  fields = list(
+    Title = "Mendelian Randomization Bayesian Model Averaging",
+    Description = "A set of functions designed to implement Mendelian Randomization Bayesian Model Averaging.",
+    `Authors@R` = c(
+      person("Michael", "Levin", email = "michael.levin@pennmedicine.upenn.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9937-9932"))
+    )
+  )
+)
+# Define License with use_*_license()
+usethis::use_mit_license("Michael Levin")
+usethis::use_pipe()
+usethis::use_tibble()
+```
+
+# MR-BMA
+
+This function allows the user to pass in a dataframe of harmonized genetic variants, and outputs the results of a Mendelain Randomization Bayesian Model Averaging experiment.
+
+<!-- 
+This first section shows:
+
+- the three parts necessary for a package: 'function', 'examples' and 'tests'.  
+  + Note that the three following chunks have names accordingly.
+
+-->
+
+```{r function-mr_bma}
+#' Perform Mendelian Randomization Bayesian Model Averaging
+#'
+#' @description This function takes harmonized exposure/outcome data and runs Mendelian Randomization Bayesian Model Averaging to identify and prioritize relationships between the exposures and outcome.
+#'
+#' @param harmonized_data (list) Harmonized data of exposures/outcomes of interest, generated using [TwoSampleMR::mv_harmonise_data()]
+#' @param kmin
+#' @param kmax
+#' @param prior_prob
+#' @param prior_sigma
+#' @param top
+#' @param nrepeat (numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate
+#'
+#' @export
+
+mr_bma <- function(harmonized_data, kmin = 5, kmax = 5, prior_prob = 0.5, prior_sigma = 0.5, top = 10, nrepeat = 100000) {
+  cli::cli_progress_step("Preparing input")
+  input_df <- mrbma_make_input(harmonized_data)
+
+  return(input_df)
+}
+
+mrbma_make_input <- function(harmonized_data) {
+  # Check input
+  checkmate::assert_list(harmonized_data)
+
+  # Format input
+  beta_df <- harmonized_data$exposure_beta %>%
+    as_tibble(rownames = "SNP") %>%
+    bind_cols(
+      harmonized_data$outcome_beta %>%
+        as_tibble() %>%
+        rename(outcome = value)
+    ) %>%
+    rename_with(.cols = !contains("SNP"), ~ glue::glue("beta_{.}"))
+
+  se_df <- harmonized_data$exposure_se %>%
+    as_tibble(rownames = "SNP") %>%
+    bind_cols(
+      harmonized_data$outcome_se %>%
+        as_tibble() %>%
+        rename(outcome = value)
+    ) %>%
+    rename_with(.cols = !contains("SNP"), ~ glue::glue("se_{.}"))
+
+  pval_df <- harmonized_data$exposure_pval %>%
+    as_tibble(rownames = "SNP") %>%
+    bind_cols(
+      harmonized_data$outcome_pval %>%
+        as_tibble() %>%
+        rename(outcome = value)
+    ) %>%
+    rename_with(.cols = !contains("SNP"), ~ glue::glue("pval_{.}"))
+
+  harmonized_df <- beta_df %>%
+    left_join(se_df, by = c("SNP")) %>%
+    left_join(pval_df, by = c("SNP"))
+
+  beta_x_ivw <- harmonized_data$exposure_beta / harmonized_data$outcome_se
+  beta_y_ivw <- harmonized_data$outcome_beta / harmonized_data$outcome_se
+
+  mvmr_input <- new("mvMRInput",
+    betaX = as.matrix(beta_x_ivw),
+    betaY = as.matrix(beta_y_ivw),
+    snps = harmonized_df$SNP,
+    exposure = harmonized_data$expname$id.exposure,
+    outcome = harmonized_data$outname$id.outcome
+  )
+
+
+
+  return(
+    list(
+      "harmonized_df" = harmonized_df,
+      "mvmr_input" = mvmr_input
+    )
+  )
+}
+```
+
+<!--
+Here is an example on how to use the function.
+This should be a reproducible and working example
+-->
+
+```{r examples-mr_bma}
+lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300", "ieu-a-302"))
+cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
+lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
+```
+
+<!--
+Here are some unit tests to verify the function works as expected.
+-->
+
+```{r tests-mr_bma}
+test_that("mr_bma_make_input works", {
+  lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300"))
+  cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
+  lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
+  mrbma_input <- mrbma_make_input(lipids_cad_harmonized)
+  expect_type(mrbma_input, "list")
+})
+```
+
+<!-- 
+# Inflate your package
+
+You're one inflate from paper to box.
+Build your package from this very Rmd using `fusen::inflate()` 
+-->
+
+
+```{r development-inflate, eval=FALSE}
+# Execute in the console directly
+fusen::inflate(flat_file = "dev/mrbma.Rmd")
+```
+
+<!-- 
+- Verify your `"DESCRIPTION"` file has been updated
+- Verify your function is in `"R/"` directory
+- Verify your test is in `"tests/testthat/"` directory
+- Verify this Rmd appears in `"vignettes/"` directory 
+-->
