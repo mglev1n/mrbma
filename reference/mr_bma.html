@@ -137,31 +137,32 @@
 <span class="r-in"><span><span class="co"># Run MR-BMA</span></span></span>
 <span class="r-in"><span><span class="va">mr_bma_res</span> <span class="op">&lt;-</span> <span class="fu">mr_bma</span><span class="op">(</span><span class="va">lipids_cad_harmonized</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Preparing input</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[101ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[67ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Running MR-BMA</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[145ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[167ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Removing influential variants</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[112ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[82ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Removing outliers</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[110ms]</span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>`cols` is now required when using unnest().</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> Please use `cols = c(`rf combination`, `posterior probability`, `causal estimate`)`</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[98ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Output best models</span></span></span>
 <span class="r-in"><span><span class="va">mr_bma_res</span><span class="op">$</span><span class="va">model_best</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                       rf_combination posterior_prob   causal_estimate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> X2.3             ieu-a-300,ieu-a-302          0.843       0.365,0.219</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> X1.2.3 ieu-a-299,ieu-a-300,ieu-a-302          0.156 -0.063,0.361,0.19</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> X1.2             ieu-a-299,ieu-a-300              0      -0.131,0.376</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> X2                         ieu-a-300              0             0.393</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> X3                         ieu-a-302              0             0.311</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> X1.3             ieu-a-299,ieu-a-302              0       -0.105,0.26</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> X1                         ieu-a-299              0            -0.202</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NA.                               NA             NA                  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NA..1                             NA             NA                  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NA..2                             NA             NA                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 7 × 3</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rf_combination                posterior_prob causal_estimate  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ieu-a-300,ieu-a-302                    0.843 0.365,0.219      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ieu-a-299,ieu-a-300,ieu-a-302          0.156 -0.063,0.361,0.19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ieu-a-299,ieu-a-300                    0     -0.131,0.376     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ieu-a-300                              0     0.393            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> ieu-a-302                              0     0.311            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> ieu-a-299,ieu-a-302                    0     -0.105,0.26      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">7</span> ieu-a-299                              0     -0.202           </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Output marginal inclusion probabilities for each risk factor</span></span></span>
 <span class="r-in"><span><span class="va">mr_bma_res</span><span class="op">$</span><span class="va">mip_table</span></span></span>

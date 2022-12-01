@@ -139,31 +139,32 @@ This should be a reproducible and working example
 <span><span class="co"># Run MR-BMA</span></span>
 <span><span class="va">mr_bma_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mr_bma.html">mr_bma</a></span><span class="op">(</span><span class="va">lipids_cad_harmonized</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Preparing input</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[79ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[53ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Running MR-BMA</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[66ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[47ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Removing influential variants</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[120ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[85ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Removing outliers</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[180ms]</span></span></span>
+<span><span class="co">#&gt; Warning: `cols` is now required when using unnest().</span></span>
+<span><span class="co">#&gt; Please use `cols = c(`rf combination`, `posterior probability`, `causal estimate`)`</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[151ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span></span>
 <span><span class="co"># Output best models</span></span>
 <span><span class="va">mr_bma_res</span><span class="op">$</span><span class="va">model_best</span></span>
-<span><span class="co">#&gt;                       rf_combination posterior_prob   causal_estimate</span></span>
-<span><span class="co">#&gt; X2.3             ieu-a-300,ieu-a-302          0.843       0.365,0.219</span></span>
-<span><span class="co">#&gt; X1.2.3 ieu-a-299,ieu-a-300,ieu-a-302          0.156 -0.063,0.361,0.19</span></span>
-<span><span class="co">#&gt; X1.2             ieu-a-299,ieu-a-300              0      -0.131,0.376</span></span>
-<span><span class="co">#&gt; X2                         ieu-a-300              0             0.393</span></span>
-<span><span class="co">#&gt; X3                         ieu-a-302              0             0.311</span></span>
-<span><span class="co">#&gt; X1.3             ieu-a-299,ieu-a-302              0       -0.105,0.26</span></span>
-<span><span class="co">#&gt; X1                         ieu-a-299              0            -0.202</span></span>
-<span><span class="co">#&gt; NA.                               NA             NA                  </span></span>
-<span><span class="co">#&gt; NA..1                             NA             NA                  </span></span>
-<span><span class="co">#&gt; NA..2                             NA             NA</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 3</span></span></span>
+<span><span class="co">#&gt;   rf_combination                posterior_prob causal_estimate  </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> ieu-a-300,ieu-a-302                    0.843 0.365,0.219      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> ieu-a-299,ieu-a-300,ieu-a-302          0.156 -0.063,0.361,0.19</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> ieu-a-299,ieu-a-300                    0     -0.131,0.376     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> ieu-a-300                              0     0.393            </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> ieu-a-302                              0     0.311            </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> ieu-a-299,ieu-a-302                    0     -0.105,0.26      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> ieu-a-299                              0     -0.202</span></span>
 <span></span>
 <span><span class="co"># Output marginal inclusion probabilities for each risk factor</span></span>
 <span><span class="va">mr_bma_res</span><span class="op">$</span><span class="va">mip_table</span></span>
@@ -176,10 +177,6 @@ This should be a reproducible and working example
 <!--
 Here are some unit tests to verify the function works as expected.
 -->
-</div>
-<div class="section level2">
-<h2 id="mrbma_nyholt_correct">mrbma_nyholt_correct<a class="anchor" aria-label="anchor" href="#mrbma_nyholt_correct"></a>
-</h2>
 <!-- 
 
 # Inflate your package
@@ -194,8 +191,7 @@ Build your package from this very Rmd using `fusen::inflate()`
 - Verify this Rmd appears in `"vignettes/"` directory 
 -->
 </div>
-  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
-    </nav></aside>
+  </main>
 </div>
 
 
