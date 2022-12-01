@@ -6,6 +6,7 @@
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/mglev1n/mrbma/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mglev1n/mrbma/actions/workflows/R-CMD-check.yaml)
+[![test-coverage](https://github.com/mglev1n/mrbma/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/mglev1n/mrbma/actions/workflows/test-coverage.yaml)
 <!-- badges: end -->
 
 The goal of mrbma is to implement Mendelian Randomization Bayesian Model
