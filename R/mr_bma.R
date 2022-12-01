@@ -14,10 +14,10 @@
 #' @param nrepeat (numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate
 #'
 #' @return A `list` containing the results of MR-BMA analyses. The list includes:
-#' - "model_best" = A [tibble][tibble::tibble-package] containing a list of the top models
-#' - "mip_table" = A [tibble][tibble::tibble-package] containing the marginal inclusion probabilities of each risk factor
-#' - "influential_res" = Diagnostic plots representing the detection of influential variants
-#' - "outlier_res" = Diagnostic plot representing the detection of outlier variants
+#' - `model_best` = A [tibble][tibble::tibble-package] containing a list of the top models
+#' - `mip_table` = A [tibble][tibble::tibble-package] containing the marginal inclusion probabilities of each risk factor
+#' - `influential_res` = Diagnostic plots representing the detection of influential variants
+#' - `outlier_res` = Diagnostic plot representing the detection of outlier variants
 #'
 #' @export
 
@@ -82,7 +82,7 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
 
   mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma, top, write.out = FALSE) %>%
     as_tibble() %>%
-    tidyr::unnest() %>%
+    tidyr::unnest(cols = c(`rf combination`, `posterior probability`, `causal estimate`)) %>%
     rename("rf_combination" := 1, "posterior_prob" := 2, "causal_estimate" := 3) %>%
     tidyr::drop_na()
 
