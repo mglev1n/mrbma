@@ -59,10 +59,12 @@
 <span>  prior_prob <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  prior_sigma <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  top <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  nrepeat <span class="op">=</span> <span class="fl">1e+05</span>,</span>
+<span>  <span class="va">kmin</span>,</span>
+<span>  <span class="va">kmax</span>,</span>
 <span>  remove_outliers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  remove_influential <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  calculate_p <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  calculate_p <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  nrepeat <span class="op">=</span> <span class="fl">1e+05</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -84,8 +86,12 @@
 <dd><p>(numeric) Number of top models to return in results</p></dd>
 
 
-<dt>nrepeat</dt>
-<dd><p>(numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate</p></dd>
+<dt>kmin</dt>
+<dd><p>(numeric) Minimum model size. By default the model will consider all combinations of exposures (eg. <code>kmin</code> = <code>kmax</code>), but may become computationally infeasible with &gt;12 exposures. If <code>kmin</code> &lt; <code>kmax</code>, then a stochastic search is performed.</p></dd>
+
+
+<dt>kmax</dt>
+<dd><p>(numeric) Maximum model size. By default the model will consider all combinations of exposures (eg. <code>kmin</code> = <code>kmax</code>), but may become computationally infeasible with &gt;12 exposures. If <code>kmin</code> &lt; <code>kmax</code>, then a stochastic search is performed.</p></dd>
 
 
 <dt>remove_outliers</dt>
@@ -98,6 +104,10 @@
 
 <dt>calculate_p</dt>
 <dd><p>(logical) Use empirical permutation with Nyholt procedure of effective tests to estimate p-values</p></dd>
+
+
+<dt>nrepeat</dt>
+<dd><p>(numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -135,18 +145,24 @@
 <span class="r-msg co"><span class="r-pr">#&gt;</span> rs7534572</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Run MR-BMA</span></span></span>
-<span class="r-in"><span><span class="va">mr_bma_res</span> <span class="op">&lt;-</span> <span class="fu">mr_bma</span><span class="op">(</span><span class="va">lipids_cad_harmonized</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mr_bma_res</span> <span class="op">&lt;-</span> <span class="fu">mr_bma</span><span class="op">(</span><span class="va">lipids_cad_harmonized</span>, calculate_p <span class="op">=</span> <span class="cn">TRUE</span>, nrepeat <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Preparing input</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[329ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[299ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Running MR-BMA</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[283ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[155ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Removing influential variants</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[148ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[136ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Removing outliers</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[193ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[185ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Estimating empirical p-value using 1000 permutations</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Estimating empirical p-value using 1000 permutations <span style="color: #B2B2B2;">[3.9s]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Performing Nyholt correction for effective number of tests</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Performing Nyholt correction for effective number of tests <span style="color: #B2B2B2;">[80ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Output best models</span></span></span>
@@ -164,12 +180,13 @@
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Output marginal inclusion probabilities for each risk factor</span></span></span>
 <span class="r-in"><span><span class="va">mr_bma_res</span><span class="op">$</span><span class="va">mip_table</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 3 × 3</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   rf        mip   mace </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ieu-a-300 1     0.364</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ieu-a-302 1     0.215</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ieu-a-299 0.157 -0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 3 × 6</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   exposure  mace                 mip               p_val           p_fdr p_nyh…¹</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ieu-a-299 -0.00987190503160849 0.156510652734589 0.924075924075… 0.92… 1      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ieu-a-300 0.364151410155237    1                 0.000999000999… 0.00… 0.0019…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ieu-a-302 0.214705609094213    0.999726011149142 0.000999000999… 0.00… 0.0019…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># … with abbreviated variable name ¹​p_nyholt</span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
