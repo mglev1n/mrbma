@@ -95,7 +95,6 @@ Here are some unit tests to verify the function works as expected.
   
 
 ```{r example-mrbma_remove_influential}
-
 ```
 
   
@@ -113,14 +112,9 @@ Here are some unit tests to verify the function works as expected.
     
 
 
-# mrbma_nyholt_correct
-
-    
-
   
 
 ```{r example-mrbma_nyholt_correct}
-
 ```
 
   

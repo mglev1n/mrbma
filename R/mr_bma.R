@@ -18,7 +18,7 @@
 #' - "mip_table" = A [tibble][tibble::tibble-package] containing the marginal inclusion probabilities of each risk factor
 #' - "influential_res" = Diagnostic plots representing the detection of influential variants
 #' - "outlier_res" = Diagnostic plot representing the detection of outlier variants
-#' 
+#'
 #' @export
 
 #' @examples
@@ -51,6 +51,7 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
 
   cli::cli_progress_step("Preparing input")
   mrbma_input <- mrbma_make_input(harmonized_data)
+  mvmr_input <- mrbma_input$mvmr_input
 
   kmin <- kmax <- length(mrbma_input$mvmr_input@exposure)
 
@@ -58,45 +59,62 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
   # can move this so it isn't run redundantly
   mrbma_output <- summarymvMR_SSS(mrbma_input$mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
 
-  
+
   if (remove_influential) {
     cli::cli_progress_step("Removing influential variants")
-  influential_res <- mrbma_remove_influential(mrbma_input$mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
-  
-  mvmr_input <- influential_res$mvmr_input_influential_pruned
-  
-  mrbma_output <- summarymvMR_SSS(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+    influential_res <- mrbma_remove_influential(mrbma_input$mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+
+    mvmr_input <- influential_res$mvmr_input_influential_pruned
+
+    mrbma_output <- summarymvMR_SSS(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
   }
-  
+
   if (remove_outliers) {
     cli::cli_progress_step("Removing outliers")
-  outlier_res <- mrbma_remove_outliers(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
-  
-  mvmr_input <- outlier_res$mvmr_input_outlier_pruned
-  
-  mrbma_output <- summarymvMR_SSS(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+    outlier_res <- mrbma_remove_outliers(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+
+    mvmr_input <- outlier_res$mvmr_input_outlier_pruned
+
+    mrbma_output <- summarymvMR_SSS(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
   }
-  
+
   # Need to add Nyholt
-  
+
   mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma, top, write.out = FALSE) %>%
-    as.data.frame() %>%
-    tidyr::drop_na() %>%
-    rename("rf_combination" := 1, "posterior_prob" := 2, "causal_estimate" := 3)
+    as_tibble() %>%
+    tidyr::unnest() %>%
+    rename("rf_combination" := 1, "posterior_prob" := 2, "causal_estimate" := 3) %>%
+    tidyr::drop_na()
+
 
   mrbma_mip <- sss.report.mr.bma(mrbma_output, top, write.out = FALSE) %>%
     as_tibble() %>%
     tidyr::drop_na() %>%
     rename("mip" := 2, "mace" := 3)
 
-  return(
-    list(
+
+  if (remove_outliers & remove_influential) {
+    mrbma_list <- list(
       "model_best" = mrbma_best_model,
       "mip_table" = mrbma_mip,
       "influential_res" = influential_res,
       "outlier_res" = outlier_res
     )
-  )
+  } else if (remove_outliers) {
+    mrbma_list <- list(
+      "model_best" = mrbma_best_model,
+      "mip_table" = mrbma_mip,
+      "outlier_res" = outlier_res
+    )
+  } else if (remove_influential) {
+    mrbma_list <- list(
+      "model_best" = mrbma_best_model,
+      "mip_table" = mrbma_mip,
+      "influential_res" = influential_res
+    )
+  }
+
+  return(mrbma_list)
 }
 
 #' mrbma_make_input
@@ -161,96 +179,119 @@ mrbma_make_input <- function(harmonized_data) {
   )
 }
 
-#' mrbma_remove_influential
-#' 
-#' Description
-#' 
-#' @return A list of diagnostic plots, influential/outlier
-#' 
+#' mrbma_nyholt_correct
+#'
+#' Perform empirical permutation to estimate p-values using the Nyholt procedure of effective tests to control the false discovery rate
+#'
+#' @return A [tibble][tibble::tibble-package]
+#'
 #' @noRd
-mrbma_remove_influential <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax, prior_prob){
+mrbma_nyholt_correct <- function(mrbma_input, mrbma_output, empirical_p) {
+  cor_beta <- cor(mrbma_input@betaX)
+
+  p_nyholt <- empirical_p[, 2] * poolr::meff(cor_beta, method = "nyholt")
+  for (i in 1:length(p_nyholt)) {
+    if (p_nyholt[i] > 1) {
+      p_nyholt[i] <- 1
+    }
+  }
+  res <- cbind(mrbma_input@exposure, mrbma_output@BMAve_Estimate, empirical_p, p_nyholt)
+  colnames(res) <- c("exposure", "mace", "mip", "p_val", "p_fdr", "p_nyholt")
+  return(res)
+}
+
+#' mrbma_remove_influential
+#'
+#' Description
+#'
+#' @return A list of diagnostic plots, influential/outlier
+#'
+#' @noRd
+mrbma_remove_influential <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax, prior_prob) {
   mrbma_output <- summarymvMR_SSS(mrbma_input, kmin = kmax, kmax = kmax, prior_prob = prior_prob)
-  mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma=0.5, top = 10, write.out = FALSE)
+  mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma = 0.5, top = 10, write.out = FALSE)
 
   # Setup
   best.model.out <- mrbma_best_model
-  nr_diag <- length(which(best.model.out[,2] >= diag_ppthresh))
-  model_index <- names(which(best.model.out[,2] >= diag_ppthresh))
+  nr_diag <- length(which(best.model.out[, 2] >= diag_ppthresh))
+  model_index <- names(which(best.model.out[, 2] >= diag_ppthresh))
   betaY_ivw <- mrbma_input@betaY
   betaX_ivw <- mrbma_input@betaX
   rf <- mrbma_input@exposure
   rs <- mrbma_input@snps
   outcome <- mrbma_input@outcome
 
-  #initialise
-  title = rep("1", nr_diag)
-  predicted_outcome = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
-  cD = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
-  cD_thresh = vector(length=nr_diag)
-  Q = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+  # initialise
+  title <- rep("1", nr_diag)
+  predicted_outcome <- matrix(ncol = nr_diag, nrow = length(betaY_ivw))
+  cD <- matrix(ncol = nr_diag, nrow = length(betaY_ivw))
+  cD_thresh <- vector(length = nr_diag)
+  Q <- matrix(ncol = nr_diag, nrow = length(betaY_ivw))
 
   # fill with loop
-  for(i in 1:nr_diag){
+  for (i in 1:nr_diag) {
     # print(as.numeric(unlist(strsplit(model_index[i], ","))))
-    if(length(as.numeric(unlist(strsplit(model_index[i], ","))))>1){
-      #betaX_model = do.call(cbind, betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
-      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+    if (length(as.numeric(unlist(strsplit(model_index[i], ",")))) > 1) {
+      # betaX_model = do.call(cbind, betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+      betaX_model <- as.matrix(betaX_ivw[, as.numeric(unlist(strsplit(model_index[i], ",")))])
+    } else {
+      betaX_model <- as.matrix(betaX_ivw[, as.numeric(unlist(strsplit(model_index[i], ",")))])
     }
-    else{
-      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
-    }
-    title[i] <- paste(rf[as.numeric(unlist(strsplit(model_index[i], ",")))],collapse=' + ')
+    title[i] <- paste(rf[as.numeric(unlist(strsplit(model_index[i], ",")))], collapse = " + ")
     sigma_vec <- rep(0.5, ncol(betaX_model))
-    cD[,i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD
-    cD_thresh[i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD_thresh
-    H_fm <- betaX_model %*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{-2} ) %*% t(betaX_model)
-    predicted_outcome[,i] <- H_fm %*% betaY_ivw
-    Q[,i] <- (betaY_ivw-predicted_outcome[,i])^2
-
+    cD[, i] <- cooksD(betaY_ivw, betaX_model, sigma_vec)$cooksD
+    cD_thresh[i] <- cooksD(betaY_ivw, betaX_model, sigma_vec)$cooksD_thresh
+    H_fm <- betaX_model %*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{
+      -2
+    }) %*% t(betaX_model)
+    predicted_outcome[, i] <- H_fm %*% betaY_ivw
+    Q[, i] <- (betaY_ivw - predicted_outcome[, i])^2
   }
 
   # Plot influential variants
   influential_plots <- list()
-  for(i in 1:nr_diag){
-    df <- data.frame(x=predicted_outcome[,i], y = as.vector(mrbma_input@betaY), cD = cD[,i], rs = rs)
+  for (i in 1:nr_diag) {
+    df <- data.frame(x = predicted_outcome[, i], y = as.vector(mrbma_input@betaY), cD = cD[, i], rs = rs)
     influential_plots[[i]] <- ggplot(data = df, aes(x, y)) +
-            geom_point(aes(colour = cD), size = 4) +
-            scale_colour_gradientn(colours = c("white", "orange", "red", "darkred"), values=c(0,0.027,0.1,0.5,1)) +
-            labs(x = "predicted beta outcome", y="observed beta outcome", colour="Cooks D") +
-            geom_hline(yintercept = 0, linetype="dotted") +
-            geom_vline(xintercept = 0, linetype="dotted") +
-            ggrepel::geom_text_repel(aes(label=ifelse(cD>cD_thresh[i],as.character(rs),'')), max.overlaps = 100) +
-            coord_cartesian(clip = "off") +
-            theme_bw(base_size = 14) +
-            theme(axis.text.x = element_text(size = 13),
-                  axis.text.y = element_text(size = 13),
-                  axis.title.x = element_text(size = 18),
-                  axis.title.y = element_text(size = 18),
-                  legend.text=element_text(size=16),
-                  legend.title=element_text(size=18)) +
-            ggtitle(title[i])
+      geom_point(aes(colour = cD), size = 4) +
+      scale_colour_gradientn(colours = c("white", "orange", "red", "darkred"), values = c(0, 0.027, 0.1, 0.5, 1)) +
+      labs(x = "predicted beta outcome", y = "observed beta outcome", colour = "Cooks D") +
+      geom_hline(yintercept = 0, linetype = "dotted") +
+      geom_vline(xintercept = 0, linetype = "dotted") +
+      ggrepel::geom_text_repel(aes(label = ifelse(cD > cD_thresh[i], as.character(rs), "")), max.overlaps = 100) +
+      coord_cartesian(clip = "off") +
+      theme_bw(base_size = 14) +
+      theme(
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 18)
+      ) +
+      ggtitle(title[i])
   }
 
   # Table of influential variants
-  maxCD=apply(cD, MARGIN=1, FUN=max)
-  sort.ix = sort.int(maxCD, decreasing=TRUE, index.return=TRUE)
-  cooksD_tab=cbind(rs,round(cD,digits=3), round(maxCD,digits=3))
-  #colnames(cooksD_tab)=c("rs","cooksD1","cooksD2","cooksD3","cooksD4","max cooksD")
-  cooksD_tab[sort.ix$ix,][1:10,]
+  maxCD <- apply(cD, MARGIN = 1, FUN = max)
+  sort.ix <- sort.int(maxCD, decreasing = TRUE, index.return = TRUE)
+  cooksD_tab <- cbind(rs, round(cD, digits = 3), round(maxCD, digits = 3))
+  # colnames(cooksD_tab)=c("rs","cooksD1","cooksD2","cooksD3","cooksD4","max cooksD")
+  cooksD_tab[sort.ix$ix, ][1:10, ]
 
   cd_snps <- list()
-    for(i in 1:nr_diag){
-      cd_snps[[i]] <- rs[which(cD[,i] > cD_thresh[i])]
+  for (i in 1:nr_diag) {
+    cd_snps[[i]] <- rs[which(cD[, i] > cD_thresh[i])]
   }
 
   # Remove influential variants and create new input
-  if(length(unique(unlist(cd_snps))) != 0) {
+  if (length(unique(unlist(cd_snps))) != 0) {
     rm <- pmatch(unique(unlist(cd_snps)), rs)
     betaY_ivw <- betaY_ivw[-rm]
-    betaX_ivw <- betaX_ivw[-rm,]
+    betaX_ivw <- betaX_ivw[-rm, ]
     rs <- rs[-rm]
     mvmr_input <- new("mvMRInput", betaX = as.matrix(betaX_ivw), betaY = as.matrix(betaY_ivw), snps = rs, exposure = rf, outcome = outcome)
-  } else{
+  } else {
     mvmr_input <- mrbma_input
   }
 
@@ -263,20 +304,20 @@ mrbma_remove_influential <- function(mrbma_input, diag_ppthresh = 0.05, kmin, km
 }
 
 #' mrbma_remove_outliers
-#' 
+#'
 #' Internal function to remove outliers
-#' 
+#'
 #' @return A list of diagnostic plots and mr_bma input with outliers removed
-#' 
+#'
 #' @noRd
-mrbma_remove_outliers <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax, prior_prob){
+mrbma_remove_outliers <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax, prior_prob) {
   mrbma_output <- summarymvMR_SSS(mrbma_input, kmin = kmax, kmax = kmax, prior_prob = prior_prob)
-  mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma=0.5, top = 10, write.out = FALSE)
+  mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma = 0.5, top = 10, write.out = FALSE)
 
   # Setup
   best.model.out <- mrbma_best_model
-  nr_diag <- length(which(best.model.out[,2] >= diag_ppthresh))
-  model_index <- names(which(best.model.out[,2] >= diag_ppthresh))
+  nr_diag <- length(which(best.model.out[, 2] >= diag_ppthresh))
+  model_index <- names(which(best.model.out[, 2] >= diag_ppthresh))
   betaY_ivw <- mrbma_input@betaY
   betaX_ivw <- mrbma_input@betaX
   rf <- mrbma_input@exposure
@@ -285,77 +326,77 @@ mrbma_remove_outliers <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax,
 
   # Outliers
   diag_ppthresh <- 0.05
-  nr_diag <- length(which(best.model.out[,2] >= diag_ppthresh))
-  model_index <- names(which(best.model.out[,2] >= diag_ppthresh))
+  nr_diag <- length(which(best.model.out[, 2] >= diag_ppthresh))
+  model_index <- names(which(best.model.out[, 2] >= diag_ppthresh))
 
- #initialise
-  title = rep("1", nr_diag)
-  predicted_outcome = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
-  cD = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
-  cD_thresh = vector(length=nr_diag)
-  Q = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+  # initialise
+  title <- rep("1", nr_diag)
+  predicted_outcome <- matrix(ncol = nr_diag, nrow = length(betaY_ivw))
+  cD <- matrix(ncol = nr_diag, nrow = length(betaY_ivw))
+  cD_thresh <- vector(length = nr_diag)
+  Q <- matrix(ncol = nr_diag, nrow = length(betaY_ivw))
 
   # fill with loop
-  for(i in 1:nr_diag){
+  for (i in 1:nr_diag) {
     # print(as.numeric(unlist(strsplit(model_index[i], ","))))
-    if(length(as.numeric(unlist(strsplit(model_index[i], ","))))>1){
-      #betaX_model = do.call(cbind, betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
-      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+    if (length(as.numeric(unlist(strsplit(model_index[i], ",")))) > 1) {
+      # betaX_model = do.call(cbind, betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+      betaX_model <- as.matrix(betaX_ivw[, as.numeric(unlist(strsplit(model_index[i], ",")))])
+    } else {
+      betaX_model <- as.matrix(betaX_ivw[, as.numeric(unlist(strsplit(model_index[i], ",")))])
     }
-    else{
-      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
-    }
-    title[i] <- paste(rf[as.numeric(unlist(strsplit(model_index[i], ",")))],collapse=' + ')
+    title[i] <- paste(rf[as.numeric(unlist(strsplit(model_index[i], ",")))], collapse = " + ")
     sigma_vec <- rep(0.5, ncol(betaX_model))
-    cD[,i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD
-    cD_thresh[i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD_thresh
-    H_fm <- betaX_model %*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{-2} ) %*% t(betaX_model)
-    predicted_outcome[,i] <- H_fm %*% betaY_ivw
-    Q[,i] <- (betaY_ivw-predicted_outcome[,i])^2
-
+    cD[, i] <- cooksD(betaY_ivw, betaX_model, sigma_vec)$cooksD
+    cD_thresh[i] <- cooksD(betaY_ivw, betaX_model, sigma_vec)$cooksD_thresh
+    H_fm <- betaX_model %*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{
+      -2
+    }) %*% t(betaX_model)
+    predicted_outcome[, i] <- H_fm %*% betaY_ivw
+    Q[, i] <- (betaY_ivw - predicted_outcome[, i])^2
   }
 
-  maxQ <- apply(Q, MARGIN=1, FUN=max)
-  sort.ix <- sort.int(maxQ, decreasing=TRUE, index.return=TRUE)
-  Q_tab <- cbind(rs,round(Q,digits=3), round(maxQ,digits=3))
+  maxQ <- apply(Q, MARGIN = 1, FUN = max)
+  sort.ix <- sort.int(maxQ, decreasing = TRUE, index.return = TRUE)
+  Q_tab <- cbind(rs, round(Q, digits = 3), round(maxQ, digits = 3))
   # Q_tab[sort.ix$ix,][1:30,]
 
-  p_adjust <- 0.05/length(betaY_ivw)
-  q_thresh <- qchisq(p_adjust, df=1, ncp = 0, lower.tail = FALSE, log.p = FALSE)
-  q_snps_outlier <- rs[which(maxQ>q_thresh)]
+  p_adjust <- 0.05 / length(betaY_ivw)
+  q_thresh <- qchisq(p_adjust, df = 1, ncp = 0, lower.tail = FALSE, log.p = FALSE)
+  q_snps_outlier <- rs[which(maxQ > q_thresh)]
 
   # Outlier Plots
   outlier_plots <- list()
-  for(i in 1:nr_diag){
-
-    df = data.frame(x=predicted_outcome[,i], y =betaY_ivw, Q = Q[,i], rs = rs)
+  for (i in 1:nr_diag) {
+    df <- data.frame(x = predicted_outcome[, i], y = betaY_ivw, Q = Q[, i], rs = rs)
     outlier_plots[[i]] <- ggplot(df, aes(x, y)) +
-      geom_point(aes(colour = Q), size =4) +
-      scale_colour_gradientn(colours = c("white", "yellow", "green", "darkgreen"), values=c(0,0.027,0.1,0.5,1)) +
-      labs(x = "predicted beta outcome", y="observed beta outcome", colour="Q") +
-      geom_hline(yintercept = 0, linetype="dotted") +
-      geom_vline(xintercept = 0, linetype="dotted") +
+      geom_point(aes(colour = Q), size = 4) +
+      scale_colour_gradientn(colours = c("white", "yellow", "green", "darkgreen"), values = c(0, 0.027, 0.1, 0.5, 1)) +
+      labs(x = "predicted beta outcome", y = "observed beta outcome", colour = "Q") +
+      geom_hline(yintercept = 0, linetype = "dotted") +
+      geom_vline(xintercept = 0, linetype = "dotted") +
       coord_cartesian(clip = "off") +
-      ggrepel::geom_text_repel(aes(label=ifelse(Q>q_thresh,as.character(rs),'')), max.overlaps = 100) +
+      ggrepel::geom_text_repel(aes(label = ifelse(Q > q_thresh, as.character(rs), "")), max.overlaps = 100) +
       theme_bw(base_size = 14) +
-      theme(axis.text.x = element_text(size = 13),
-            axis.text.y = element_text(size = 13),
-            axis.title.x = element_text(size = 18),
-            axis.title.y = element_text(size = 18),
-            legend.text=element_text(size=16),
-            legend.title=element_text(size=18)) +
+      theme(
+        axis.text.x = element_text(size = 13),
+        axis.text.y = element_text(size = 13),
+        axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 18)
+      ) +
       ggtitle(title[i])
-
   }
 
   # Remove outlier variants and create new input
-  if(length(q_snps_outlier) != 0) {
+  if (length(q_snps_outlier) != 0) {
     rm <- pmatch(q_snps_outlier, rs)
     betaY_ivw <- betaY_ivw[-rm]
-    betaX_ivw <- betaX_ivw[-rm,]
+    betaX_ivw <- betaX_ivw[-rm, ]
     rs <- rs[-rm]
     mvmr_input <- new("mvMRInput", betaX = as.matrix(betaX_ivw), betaY = as.matrix(betaY_ivw), snps = rs, exposure = rf, outcome = outcome)
-  } else{
+  } else {
     mvmr_input <- mrbma_input
   }
 
@@ -367,5 +408,4 @@ mrbma_remove_outliers <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax,
       mvmr_input_outlier_pruned = mvmr_input
     )
   )
-
 }

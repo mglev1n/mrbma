@@ -403,8 +403,7 @@ log_binom_gamma <- function(gamma, n_x, prior_prob) {
 
 sss.report.best.model <- function(BMA_output, prior_sigma = 0.5, top = 10, digits = 3, write.out = TRUE, csv.file.name = "best_model_out") {
   if (class(BMA_output)[1] != "mvMR_SSS") {
-    message("Input needs to be of class mvMR_SSS")
-    break
+    stop("Input needs to be of class mvMR_SSS")
   }
 
   pp <- BMA_output@pp
@@ -463,8 +462,7 @@ sss.report.best.model <- function(BMA_output, prior_sigma = 0.5, top = 10, digit
 
 sss.report.mr.bma <- function(BMA_output, top = 10, digits = 3, write.out = TRUE, csv.file.name = "mr_bma_out") {
   if (class(BMA_output)[1] != "mvMR_SSS") {
-    message("Input needs to be of class mvMR_SSS")
-    break
+    stop("Input needs to be of class mvMR_SSS")
   }
 
   pp_marginal <- BMA_output@pp_marginal

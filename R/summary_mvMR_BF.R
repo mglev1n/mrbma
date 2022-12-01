@@ -343,8 +343,7 @@ beta_est <- function(y, x, sigma_vec, intercept) {
 
 report.best.model <- function(BMA_output, prior_sigma = 0.5, top = 10, digits = 3, write.out = TRUE, csv.file.name = "best_model_out") {
   if (class(BMA_output)[1] != "MRBF") {
-    message("Input needs to be of class MRBF")
-    break
+    stop("Input needs to be of class MRBF")
   }
 
   pp <- BMA_output@pp
@@ -401,8 +400,7 @@ report.best.model <- function(BMA_output, prior_sigma = 0.5, top = 10, digits = 
 
 report.mr.bma <- function(BMA_output, top = 10, digits = 3, write.out = TRUE, csv.file.name = "mr_bma_out") {
   if (class(BMA_output)[1] != "MRBF") {
-    message("Input needs to be of class MRBF")
-    break
+    stop("Input needs to be of class MRBF")
   }
 
   pp_marginal <- BMA_output@pp_marginal

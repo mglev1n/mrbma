@@ -5,7 +5,11 @@ test_that("mr_bma works", {
   cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
   lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
   mrbma_res <- mr_bma(lipids_cad_harmonized)
+  mrbma_res_no_outliers <- mr_bma(lipids_cad_harmonized, remove_outliers = FALSE)
+  mrbma_res_no_influential <- mr_bma(lipids_cad_harmonized, remove_influential = FALSE)
   expect_type(mrbma_res, "list")
+  expect_type(mrbma_res_no_outliers, "list")
+  expect_type(mrbma_res_no_influential, "list")
 })
 
 test_that("mr_bma_make_input works", {
