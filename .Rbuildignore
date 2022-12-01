@@ -3,3 +3,5 @@
 ^LICENSE\.md$
 ^mrbma\.Rproj$
 ^\.Rproj\.user$
+^\.github$
+^README\.Rmd$
