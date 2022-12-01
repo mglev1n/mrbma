@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">mrbma</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -139,22 +139,22 @@ This should be a reproducible and working example
 <span><span class="co"># Run MR-BMA</span></span>
 <span><span class="va">mr_bma_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mr_bma.html">mr_bma</a></span><span class="op">(</span><span class="va">lipids_cad_harmonized</span>, calculate_p <span class="op">=</span> <span class="cn">TRUE</span>, nrepeat <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Preparing input</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[81ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[53ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Running MR-BMA</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[77ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[46ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Removing influential variants</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[132ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[83ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Removing outliers</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[233ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[145ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Estimating empirical p-value using 1000 permutations</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Estimating empirical p-value using 1000 permutations <span style="color: #B2B2B2;">[4.3s]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Estimating empirical p-value using 1000 permutations <span style="color: #B2B2B2;">[2.6s]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Performing Nyholt correction for effective number of tests</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Performing Nyholt correction for effective number of tests <span style="color: #B2B2B2;">[40ms]</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Performing Nyholt correction for effective number of tests <span style="color: #B2B2B2;">[25ms]</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span></span>
 <span><span class="co"># Output best models</span></span>
@@ -175,7 +175,7 @@ This should be a reproducible and working example
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 6</span></span></span>
 <span><span class="co">#&gt;   exposure  mace                 mip               p_val           p_fdr p_nyh…¹</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> ieu-a-299 -0.00987190503160849 0.156510652734589 0.937062937062… 0.93… 1      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> ieu-a-299 -0.00987190503160849 0.156510652734589 0.934065934065… 0.93… 1      </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> ieu-a-300 0.364151410155237    1                 0.000999000999… 0.00… 0.0019…</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> ieu-a-302 0.214705609094213    0.999726011149142 0.000999000999… 0.00… 0.0019…</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># … with abbreviated variable name ¹​p_nyholt</span></span></span></code></pre></div>
