@@ -7,25 +7,33 @@ Authors@R:
 Description: A set of functions designed to implement Mendelian
     Randomization Bayesian Model Averaging.
 License: MIT + file LICENSE
+URL: https://github.com/mglev1n/mrbma, https://mglev1n.github.io/mrbma/
+BugReports: https://github.com/mglev1n/mrbma/issues
 Imports: 
     checkmate,
     cli,
     combinat,
     dplyr,
+    ggplot2,
+    ggrepel,
     glue,
     hash,
     magrittr,
+    methods,
+    poolr,
+    stats,
     tibble,
-    TwoSampleMR
+    tidyr,
+    TwoSampleMR (>= 0.5.6),
+    utils
 Suggests: 
     knitr,
     rmarkdown,
     testthat
 VignetteBuilder: 
     knitr
+Remotes: 
+    MRCIEU/TwoSampleMR
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.2
-URL: https://github.com/mglev1n/mrbma,
-    https://mglev1n.github.io/mrbma/
-BugReports: https://github.com/mglev1n/mrbma/issues

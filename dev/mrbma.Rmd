@@ -45,7 +45,7 @@ usethis::use_tibble()
 
 # MR-BMA
 
-This function allows the user to pass in a dataframe of harmonized genetic variants, and outputs the results of a Mendelain Randomization Bayesian Model Averaging experiment.
+This function allows the user to pass in a set of harmonized genetic variants generated using the `TwoSampleMR::mv_harmonise_data()` function, and outputs the results of a Mendelian Randomization Bayesian Model Averaging experiment.
 
 <!-- 
 This first section shows:
@@ -61,22 +61,131 @@ This first section shows:
 #' @description This function takes harmonized exposure/outcome data and runs Mendelian Randomization Bayesian Model Averaging to identify and prioritize relationships between the exposures and outcome.
 #'
 #' @param harmonized_data (list) Harmonized data of exposures/outcomes of interest, generated using [TwoSampleMR::mv_harmonise_data()]
-#' @param kmin
-#' @param kmax
-#' @param prior_prob
-#' @param prior_sigma
-#' @param top
+#' @param prior_prob (numeric) Prior probability
+#' @param prior_sigma (numeric) Variance of the prior probability
+#' @param top (numeric) Number of top models to return in results
+#' @param remove_outliers (logical) Remove outlier variants based on Q-statistic
+#' @param remove_influential (logical) Remove influential variants based on Cook's distance
+#' @param calculate_p (logical) Use empirical permutation with Nyholt procedure of effective tests to estimate p-values
 #' @param nrepeat (numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate
 #'
+#' @return A `list` containing the results of MR-BMA analyses. The list includes:
+#' - "model_best" = A [tibble][tibble::tibble-package] containing a list of the top models
+#' - "mip_table" = A [tibble][tibble::tibble-package] containing the marginal inclusion probabilities of each risk factor
+#' - "influential_res" = Diagnostic plots representing the detection of influential variants
+#' - "outlier_res" = Diagnostic plot representing the detection of outlier variants
+#' 
 #' @export
 
-mr_bma <- function(harmonized_data, kmin = 5, kmax = 5, prior_prob = 0.5, prior_sigma = 0.5, top = 10, nrepeat = 100000) {
+mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 10, nrepeat = 100000, remove_outliers = TRUE, remove_influential = TRUE, calculate_p = FALSE) {
+  # Check inputs
+  checkmate::assert_numeric(prior_prob)
+  checkmate::assert_numeric(prior_sigma)
+  checkmate::assert_numeric(top)
+  checkmate::assert_numeric(nrepeat)
+  checkmate::assert_logical(remove_outliers)
+  checkmate::assert_logical(remove_influential)
+  checkmate::assert_logical(calculate_p)
+
   cli::cli_progress_step("Preparing input")
-  input_df <- mrbma_make_input(harmonized_data)
+  mrbma_input <- mrbma_make_input(harmonized_data)
 
-  return(input_df)
+  kmin <- kmax <- length(mrbma_input$mvmr_input@exposure)
+
+  cli::cli_progress_step("Running MR-BMA")
+  # can move this so it isn't run redundantly
+  mrbma_output <- summarymvMR_SSS(mrbma_input$mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+
+  
+  if (remove_influential) {
+    cli::cli_progress_step("Removing influential variants")
+  influential_res <- mrbma_remove_influential(mrbma_input$mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+  
+  mvmr_input <- influential_res$mvmr_input_influential_pruned
+  
+  mrbma_output <- summarymvMR_SSS(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+  }
+  
+  if (remove_outliers) {
+    cli::cli_progress_step("Removing outliers")
+  outlier_res <- mrbma_remove_outliers(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+  
+  mvmr_input <- outlier_res$mvmr_input_outlier_pruned
+  
+  mrbma_output <- summarymvMR_SSS(mvmr_input, kmin = kmin, kmax = kmax, prior_prob = prior_prob)
+  }
+  
+  # Need to add Nyholt
+  
+  mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma, top, write.out = FALSE) %>%
+    as.data.frame() %>%
+    tidyr::drop_na() %>%
+    rename("rf_combination" := 1, "posterior_prob" := 2, "causal_estimate" := 3)
+
+  mrbma_mip <- sss.report.mr.bma(mrbma_output, top, write.out = FALSE) %>%
+    as_tibble() %>%
+    tidyr::drop_na() %>%
+    rename("mip" := 2, "mace" := 3)
+
+  return(
+    list(
+      "model_best" = mrbma_best_model,
+      "mip_table" = mrbma_mip,
+      "influential_res" = influential_res,
+      "outlier_res" = outlier_res
+    )
+  )
 }
+```
 
+<!--
+Here is an example on how to use the function.
+This should be a reproducible and working example
+-->
+
+```{r examples-mr_bma}
+# Extract genetic instruments
+lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300", "ieu-a-302"))
+
+# Extract corresponding outcome data
+cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
+
+# Generate harmonized dataset
+lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
+
+# Run MR-BMA
+mr_bma_res <- mr_bma(lipids_cad_harmonized)
+
+# Output best models
+mr_bma_res$model_best
+
+# Output marginal inclusion probabilities for each risk factor
+mr_bma_res$mip_table
+```
+
+<!--
+Here are some unit tests to verify the function works as expected.
+-->
+
+```{r tests-mr_bma}
+test_that("mr_bma works", {
+  lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300", "ieu-a-301", "ieu-a-302"))
+  cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
+  lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
+  mrbma_res <- mr_bma(lipids_cad_harmonized)
+  expect_type(mrbma_res, "list")
+})
+```
+
+
+```{r function-mrbma_input}
+#' mrbma_make_input
+#'
+#' Internal function to turn result of [TwoSampleMR::mv_harmonise_data()] into `mvMRInput`
+#'
+#'
+#' @noRd
+# internal function to prepare input
 mrbma_make_input <- function(harmonized_data) {
   # Check input
   checkmate::assert_list(harmonized_data)
@@ -124,8 +233,6 @@ mrbma_make_input <- function(harmonized_data) {
     outcome = harmonized_data$outname$id.outcome
   )
 
-
-
   return(
     list(
       "harmonized_df" = harmonized_df,
@@ -134,23 +241,11 @@ mrbma_make_input <- function(harmonized_data) {
   )
 }
 ```
-
-<!--
-Here is an example on how to use the function.
-This should be a reproducible and working example
--->
-
-```{r examples-mr_bma}
-lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300", "ieu-a-302"))
-cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
-lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
+  
+```{r example-mrbma_input}
 ```
-
-<!--
-Here are some unit tests to verify the function works as expected.
--->
-
-```{r tests-mr_bma}
+  
+```{r tests-mrbma_input}
 test_that("mr_bma_make_input works", {
   lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300"))
   cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
@@ -159,6 +254,268 @@ test_that("mr_bma_make_input works", {
   expect_type(mrbma_input, "list")
 })
 ```
+  
+    
+```{r function-mrbma_remove_influential}
+#' mrbma_remove_influential
+#' 
+#' Description
+#' 
+#' @return A list of diagnostic plots, influential/outlier
+#' 
+#' @noRd
+mrbma_remove_influential <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax, prior_prob){
+  mrbma_output <- summarymvMR_SSS(mrbma_input, kmin = kmax, kmax = kmax, prior_prob = prior_prob)
+  mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma=0.5, top = 10, write.out = FALSE)
+
+  # Setup
+  best.model.out <- mrbma_best_model
+  nr_diag <- length(which(best.model.out[,2] >= diag_ppthresh))
+  model_index <- names(which(best.model.out[,2] >= diag_ppthresh))
+  betaY_ivw <- mrbma_input@betaY
+  betaX_ivw <- mrbma_input@betaX
+  rf <- mrbma_input@exposure
+  rs <- mrbma_input@snps
+  outcome <- mrbma_input@outcome
+
+  #initialise
+  title = rep("1", nr_diag)
+  predicted_outcome = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+  cD = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+  cD_thresh = vector(length=nr_diag)
+  Q = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+
+  # fill with loop
+  for(i in 1:nr_diag){
+    # print(as.numeric(unlist(strsplit(model_index[i], ","))))
+    if(length(as.numeric(unlist(strsplit(model_index[i], ","))))>1){
+      #betaX_model = do.call(cbind, betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+    }
+    else{
+      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+    }
+    title[i] <- paste(rf[as.numeric(unlist(strsplit(model_index[i], ",")))],collapse=' + ')
+    sigma_vec <- rep(0.5, ncol(betaX_model))
+    cD[,i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD
+    cD_thresh[i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD_thresh
+    H_fm <- betaX_model %*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{-2} ) %*% t(betaX_model)
+    predicted_outcome[,i] <- H_fm %*% betaY_ivw
+    Q[,i] <- (betaY_ivw-predicted_outcome[,i])^2
+
+  }
+
+  # Plot influential variants
+  influential_plots <- list()
+  for(i in 1:nr_diag){
+    df <- data.frame(x=predicted_outcome[,i], y = as.vector(mrbma_input@betaY), cD = cD[,i], rs = rs)
+    influential_plots[[i]] <- ggplot(data = df, aes(x, y)) +
+            geom_point(aes(colour = cD), size = 4) +
+            scale_colour_gradientn(colours = c("white", "orange", "red", "darkred"), values=c(0,0.027,0.1,0.5,1)) +
+            labs(x = "predicted beta outcome", y="observed beta outcome", colour="Cooks D") +
+            geom_hline(yintercept = 0, linetype="dotted") +
+            geom_vline(xintercept = 0, linetype="dotted") +
+            ggrepel::geom_text_repel(aes(label=ifelse(cD>cD_thresh[i],as.character(rs),'')), max.overlaps = 100) +
+            coord_cartesian(clip = "off") +
+            theme_bw(base_size = 14) +
+            theme(axis.text.x = element_text(size = 13),
+                  axis.text.y = element_text(size = 13),
+                  axis.title.x = element_text(size = 18),
+                  axis.title.y = element_text(size = 18),
+                  legend.text=element_text(size=16),
+                  legend.title=element_text(size=18)) +
+            ggtitle(title[i])
+  }
+
+  # Table of influential variants
+  maxCD=apply(cD, MARGIN=1, FUN=max)
+  sort.ix = sort.int(maxCD, decreasing=TRUE, index.return=TRUE)
+  cooksD_tab=cbind(rs,round(cD,digits=3), round(maxCD,digits=3))
+  #colnames(cooksD_tab)=c("rs","cooksD1","cooksD2","cooksD3","cooksD4","max cooksD")
+  cooksD_tab[sort.ix$ix,][1:10,]
+
+  cd_snps <- list()
+    for(i in 1:nr_diag){
+      cd_snps[[i]] <- rs[which(cD[,i] > cD_thresh[i])]
+  }
+
+  # Remove influential variants and create new input
+  if(length(unique(unlist(cd_snps))) != 0) {
+    rm <- pmatch(unique(unlist(cd_snps)), rs)
+    betaY_ivw <- betaY_ivw[-rm]
+    betaX_ivw <- betaX_ivw[-rm,]
+    rs <- rs[-rm]
+    mvmr_input <- new("mvMRInput", betaX = as.matrix(betaX_ivw), betaY = as.matrix(betaY_ivw), snps = rs, exposure = rf, outcome = outcome)
+  } else{
+    mvmr_input <- mrbma_input
+  }
+
+  return(list(
+    influential_plots = influential_plots,
+    cd_threshold_influential = cD_thresh,
+    cd_snps_influential = unique(unlist(cd_snps)),
+    mvmr_input_influential_pruned = mvmr_input
+  ))
+}
+```
+  
+```{r example-mrbma_remove_influential}
+
+```
+  
+```{r tests-mrbma_remove_influential}
+
+```
+  
+
+```{r function-mrbma_remove_outliers}
+#' mrbma_remove_outliers
+#' 
+#' Internal function to remove outliers
+#' 
+#' @return A list of diagnostic plots and mr_bma input with outliers removed
+#' 
+#' @noRd
+mrbma_remove_outliers <- function(mrbma_input, diag_ppthresh = 0.05, kmin, kmax, prior_prob){
+  mrbma_output <- summarymvMR_SSS(mrbma_input, kmin = kmax, kmax = kmax, prior_prob = prior_prob)
+  mrbma_best_model <- sss.report.best.model(mrbma_output, prior_sigma=0.5, top = 10, write.out = FALSE)
+
+  # Setup
+  best.model.out <- mrbma_best_model
+  nr_diag <- length(which(best.model.out[,2] >= diag_ppthresh))
+  model_index <- names(which(best.model.out[,2] >= diag_ppthresh))
+  betaY_ivw <- mrbma_input@betaY
+  betaX_ivw <- mrbma_input@betaX
+  rf <- mrbma_input@exposure
+  rs <- mrbma_input@snps
+  outcome <- mrbma_input@outcome
+
+  # Outliers
+  diag_ppthresh <- 0.05
+  nr_diag <- length(which(best.model.out[,2] >= diag_ppthresh))
+  model_index <- names(which(best.model.out[,2] >= diag_ppthresh))
+
+ #initialise
+  title = rep("1", nr_diag)
+  predicted_outcome = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+  cD = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+  cD_thresh = vector(length=nr_diag)
+  Q = matrix(ncol=nr_diag, nrow=length(betaY_ivw))
+
+  # fill with loop
+  for(i in 1:nr_diag){
+    # print(as.numeric(unlist(strsplit(model_index[i], ","))))
+    if(length(as.numeric(unlist(strsplit(model_index[i], ","))))>1){
+      #betaX_model = do.call(cbind, betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+    }
+    else{
+      betaX_model <- as.matrix(betaX_ivw[,as.numeric(unlist(strsplit(model_index[i], ",")))])
+    }
+    title[i] <- paste(rf[as.numeric(unlist(strsplit(model_index[i], ",")))],collapse=' + ')
+    sigma_vec <- rep(0.5, ncol(betaX_model))
+    cD[,i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD
+    cD_thresh[i] <- cooksD(betaY_ivw,betaX_model,sigma_vec)$cooksD_thresh
+    H_fm <- betaX_model %*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{-2} ) %*% t(betaX_model)
+    predicted_outcome[,i] <- H_fm %*% betaY_ivw
+    Q[,i] <- (betaY_ivw-predicted_outcome[,i])^2
+
+  }
+
+  maxQ <- apply(Q, MARGIN=1, FUN=max)
+  sort.ix <- sort.int(maxQ, decreasing=TRUE, index.return=TRUE)
+  Q_tab <- cbind(rs,round(Q,digits=3), round(maxQ,digits=3))
+  # Q_tab[sort.ix$ix,][1:30,]
+
+  p_adjust <- 0.05/length(betaY_ivw)
+  q_thresh <- qchisq(p_adjust, df=1, ncp = 0, lower.tail = FALSE, log.p = FALSE)
+  q_snps_outlier <- rs[which(maxQ>q_thresh)]
+
+  # Outlier Plots
+  outlier_plots <- list()
+  for(i in 1:nr_diag){
+
+    df = data.frame(x=predicted_outcome[,i], y =betaY_ivw, Q = Q[,i], rs = rs)
+    outlier_plots[[i]] <- ggplot(df, aes(x, y)) +
+      geom_point(aes(colour = Q), size =4) +
+      scale_colour_gradientn(colours = c("white", "yellow", "green", "darkgreen"), values=c(0,0.027,0.1,0.5,1)) +
+      labs(x = "predicted beta outcome", y="observed beta outcome", colour="Q") +
+      geom_hline(yintercept = 0, linetype="dotted") +
+      geom_vline(xintercept = 0, linetype="dotted") +
+      coord_cartesian(clip = "off") +
+      ggrepel::geom_text_repel(aes(label=ifelse(Q>q_thresh,as.character(rs),'')), max.overlaps = 100) +
+      theme_bw(base_size = 14) +
+      theme(axis.text.x = element_text(size = 13),
+            axis.text.y = element_text(size = 13),
+            axis.title.x = element_text(size = 18),
+            axis.title.y = element_text(size = 18),
+            legend.text=element_text(size=16),
+            legend.title=element_text(size=18)) +
+      ggtitle(title[i])
+
+  }
+
+  # Remove outlier variants and create new input
+  if(length(q_snps_outlier) != 0) {
+    rm <- pmatch(q_snps_outlier, rs)
+    betaY_ivw <- betaY_ivw[-rm]
+    betaX_ivw <- betaX_ivw[-rm,]
+    rs <- rs[-rm]
+    mvmr_input <- new("mvMRInput", betaX = as.matrix(betaX_ivw), betaY = as.matrix(betaY_ivw), snps = rs, exposure = rf, outcome = outcome)
+  } else{
+    mvmr_input <- mrbma_input
+  }
+
+  return(
+    list(
+      q_table = Q_tab,
+      q_snps_outlier = q_snps_outlier,
+      outlier_plots = outlier_plots,
+      mvmr_input_outlier_pruned = mvmr_input
+    )
+  )
+
+}
+```
+  
+```{r example-mrbma_remove_outliers}
+```
+  
+```{r tests-mrbma_remove_outliers}
+```
+    
+
+# mrbma_nyholt_correct
+    
+```{r function-mrbma_nyholt_correct}
+#' mrbma_nyholt_correct
+#' 
+#' Perform empirical permutation to estimate p-values using the Nyholt procedure of effective tests to control the false discovery rate
+#' 
+#' @return A [tibble][tibble::tibble-package]
+#' 
+#' @noRd
+mrbma_nyholt_correct <- function(mrbma_input, mrbma_output, empirical_p){
+  cor_beta <- cor(mrbma_input@betaX)
+
+  p_nyholt <- empirical_p[,2] * poolr::meff(cor_beta, method="nyholt")
+  for(i in 1:length(p_nyholt)){
+    if(p_nyholt[i]>1){p_nyholt[i] = 1}
+    }
+  res <- cbind(mrbma_input@exposure, mrbma_output@BMAve_Estimate, empirical_p, p_nyholt)
+  colnames(res) = c("exposure", "mace", "mip", "p_val" ,"p_fdr","p_nyholt")
+  return(res)
+}
+```
+  
+```{r example-mrbma_nyholt_correct}
+
+```
+  
+```{r tests-mrbma_nyholt_correct}
+
+```
+  
 
 <!-- 
 # Inflate your package

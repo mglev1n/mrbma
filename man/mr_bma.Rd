@@ -6,24 +6,60 @@
 \usage{
 mr_bma(
   harmonized_data,
-  kmin = 5,
-  kmax = 5,
   prior_prob = 0.5,
   prior_sigma = 0.5,
   top = 10,
-  nrepeat = 1e+05
+  nrepeat = 1e+05,
+  remove_outliers = TRUE,
+  remove_influential = TRUE,
+  calculate_p = FALSE
 )
 }
 \arguments{
 \item{harmonized_data}{(list) Harmonized data of exposures/outcomes of interest, generated using \code{\link[TwoSampleMR:mv_harmonise_data]{TwoSampleMR::mv_harmonise_data()}}}
 
+\item{prior_prob}{(numeric) Prior probability}
+
+\item{prior_sigma}{(numeric) Variance of the prior probability}
+
+\item{top}{(numeric) Number of top models to return in results}
+
 \item{nrepeat}{(numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate}
+
+\item{remove_outliers}{(logical) Remove outlier variants based on Q-statistic}
+
+\item{remove_influential}{(logical) Remove influential variants based on Cook's distance}
+
+\item{calculate_p}{(logical) Use empirical permutation with Nyholt procedure of effective tests to estimate p-values}
+}
+\value{
+A \code{list} containing the results of MR-BMA analyses. The list includes:
+\itemize{
+\item "model_best" = A \link[tibble:tibble-package]{tibble} containing a list of the top models
+\item "mip_table" = A \link[tibble:tibble-package]{tibble} containing the marginal inclusion probabilities of each risk factor
+\item "influential_res" = Diagnostic plots representing the detection of influential variants
+\item "outlier_res" = Diagnostic plot representing the detection of outlier variants
+}
 }
 \description{
 This function takes harmonized exposure/outcome data and runs Mendelian Randomization Bayesian Model Averaging to identify and prioritize relationships between the exposures and outcome.
 }
 \examples{
+# Extract genetic instruments
 lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300", "ieu-a-302"))
+
+# Extract corresponding outcome data
 cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
+
+# Generate harmonized dataset
 lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
+
+# Run MR-BMA
+mr_bma_res <- mr_bma(lipids_cad_harmonized)
+
+# Output best models
+mr_bma_res$model_best
+
+# Output marginal inclusion probabilities for each risk factor
+mr_bma_res$mip_table
 }

@@ -40,7 +40,7 @@ Note: when you will use other flat templates, this part will be in a separate fi
 
 # MR-BMA
 
-This function allows the user to pass in a dataframe of harmonized genetic variants, and outputs the results of a Mendelain Randomization Bayesian Model Averaging experiment.
+This function allows the user to pass in a set of harmonized genetic variants generated using the `TwoSampleMR::mv_harmonise_data()` function, and outputs the results of a Mendelian Randomization Bayesian Model Averaging experiment.
 
 <!-- 
 This first section shows:
@@ -58,15 +58,74 @@ This should be a reproducible and working example
 
 
 ```{r examples-mr_bma}
+# Extract genetic instruments
 lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300", "ieu-a-302"))
+
+# Extract corresponding outcome data
 cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
+
+# Generate harmonized dataset
 lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
+
+# Run MR-BMA
+mr_bma_res <- mr_bma(lipids_cad_harmonized)
+
+# Output best models
+mr_bma_res$model_best
+
+# Output marginal inclusion probabilities for each risk factor
+mr_bma_res$mip_table
 ```
 
 <!--
 Here are some unit tests to verify the function works as expected.
 -->
 
+
+  
+
+```{r example-mrbma_input}
+```
+
+  
+
+  
+    
+
+  
+
+```{r example-mrbma_remove_influential}
+
+```
+
+  
+
+  
+
+
+  
+
+```{r example-mrbma_remove_outliers}
+```
+
+  
+
+    
+
+
+# mrbma_nyholt_correct
+
+    
+
+  
+
+```{r example-mrbma_nyholt_correct}
+
+```
+
+  
+
+  
 
 <!-- 
 
