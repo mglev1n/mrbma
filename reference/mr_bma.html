@@ -104,10 +104,10 @@
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     
 
-<p>A <code>list</code> containing the results of MR-BMA analyses. The list includes:</p><ul><li><p>"model_best" = A <a href="https://tibble.tidyverse.org/reference/tibble-package.html" class="external-link">tibble</a> containing a list of the top models</p></li>
-<li><p>"mip_table" = A <a href="https://tibble.tidyverse.org/reference/tibble-package.html" class="external-link">tibble</a> containing the marginal inclusion probabilities of each risk factor</p></li>
-<li><p>"influential_res" = Diagnostic plots representing the detection of influential variants</p></li>
-<li><p>"outlier_res" = Diagnostic plot representing the detection of outlier variants</p></li>
+<p>A <code>list</code> containing the results of MR-BMA analyses. The list includes:</p><ul><li><p><code>model_best</code> = A <a href="https://tibble.tidyverse.org/reference/tibble-package.html" class="external-link">tibble</a> containing a list of the top models</p></li>
+<li><p><code>mip_table</code> = A <a href="https://tibble.tidyverse.org/reference/tibble-package.html" class="external-link">tibble</a> containing the marginal inclusion probabilities of each risk factor</p></li>
+<li><p><code>influential_res</code> = Diagnostic plots representing the detection of influential variants</p></li>
+<li><p><code>outlier_res</code> = Diagnostic plot representing the detection of outlier variants</p></li>
 </ul></div>
 
     <div class="section level2">
@@ -137,18 +137,16 @@
 <span class="r-in"><span><span class="co"># Run MR-BMA</span></span></span>
 <span class="r-in"><span><span class="va">mr_bma_res</span> <span class="op">&lt;-</span> <span class="fu">mr_bma</span><span class="op">(</span><span class="va">lipids_cad_harmonized</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Preparing input</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[310ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Preparing input <span style="color: #B2B2B2;">[329ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Running MR-BMA</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[200ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Running MR-BMA <span style="color: #B2B2B2;">[283ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Removing influential variants</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[121ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing influential variants <span style="color: #B2B2B2;">[148ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Removing outliers</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>`cols` is now required when using unnest().</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> Please use `cols = c(`rf combination`, `posterior probability`, `causal estimate`)`</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[161ms]</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Removing outliers <span style="color: #B2B2B2;">[193ms]</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Output best models</span></span></span>
