@@ -26,19 +26,19 @@
 #' @examples
 #' # Extract genetic instruments
 #' lipid_exposures <- TwoSampleMR::mv_extract_exposures(id_exposure = c("ieu-a-299", "ieu-a-300", "ieu-a-302"))
-#' 
+#'
 #' # Extract corresponding outcome data
 #' cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, outcomes = "ebi-a-GCST005195")
-#' 
+#'
 #' # Generate harmonized dataset
 #' lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
-#' 
+#'
 #' # Run MR-BMA
 #' mr_bma_res <- mr_bma(lipids_cad_harmonized, calculate_p = TRUE, nrepeat = 1000)
-#' 
+#'
 #' # Output best models
 #' mr_bma_res$model_best
-#' 
+#'
 #' # Output marginal inclusion probabilities for each risk factor
 #' mr_bma_res$mip_table
 mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 10, kmin, kmax, remove_outliers = TRUE, remove_influential = TRUE, calculate_p = FALSE, nrepeat = 100000) {
@@ -55,13 +55,13 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
   mrbma_input <- mrbma_make_input(harmonized_data)
   mvmr_input <- mrbma_input$mvmr_input
 
-  if(missing(kmin) | missing(kmax)) {
+  if (missing(kmin) | missing(kmax)) {
     kmin <- kmax <- length(mrbma_input$mvmr_input@exposure)
   }
-  
+
   checkmate::assert_numeric(kmin)
   checkmate::assert_numeric(kmax)
-  
+
 
   cli::cli_progress_step("Running MR-BMA")
   # can move this so it isn't run redundantly
@@ -99,11 +99,11 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
     as_tibble() %>%
     tidyr::drop_na() %>%
     rename("mip" := 2, "mace" := 3)
-  
+
   mrbma_list <- list(
-      "model_best" = mrbma_best_model,
-      "mip_table" = mrbma_mip
-    )
+    "model_best" = mrbma_best_model,
+    "mip_table" = mrbma_mip
+  )
 
   if (calculate_p) {
     cli::cli_progress_step("Estimating empirical p-value using {nrepeat} permutations")
@@ -113,7 +113,7 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
     cli::cli_progress_step("Performing Nyholt correction for effective number of tests")
     nyholt_res <- mrbma_nyholt_correct(mrbma_input = mvmr_input, mrbma_output = mrbma_output, empirical_p = pval_res) %>%
       as_tibble() %>%
-      tidyr::drop_na() 
+      tidyr::drop_na()
 
     mrbma_list <- list(
       "model_best" = mrbma_best_model,
