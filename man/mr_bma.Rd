@@ -9,10 +9,12 @@ mr_bma(
   prior_prob = 0.5,
   prior_sigma = 0.5,
   top = 10,
-  nrepeat = 1e+05,
+  kmin,
+  kmax,
   remove_outliers = TRUE,
   remove_influential = TRUE,
-  calculate_p = FALSE
+  calculate_p = FALSE,
+  nrepeat = 1e+05
 )
 }
 \arguments{
@@ -24,13 +26,17 @@ mr_bma(
 
 \item{top}{(numeric) Number of top models to return in results}
 
-\item{nrepeat}{(numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate}
+\item{kmin}{(numeric) Minimum model size. By default the model will consider all combinations of exposures (eg. \code{kmin} = \code{kmax}), but may become computationally infeasible with >12 exposures. If \code{kmin} < \code{kmax}, then a stochastic search is performed.}
+
+\item{kmax}{(numeric) Maximum model size. By default the model will consider all combinations of exposures (eg. \code{kmin} = \code{kmax}), but may become computationally infeasible with >12 exposures. If \code{kmin} < \code{kmax}, then a stochastic search is performed.}
 
 \item{remove_outliers}{(logical) Remove outlier variants based on Q-statistic}
 
 \item{remove_influential}{(logical) Remove influential variants based on Cook's distance}
 
 \item{calculate_p}{(logical) Use empirical permutation with Nyholt procedure of effective tests to estimate p-values}
+
+\item{nrepeat}{(numeric) Number of permutations used when estimating Nyholt-corrected False Discovery Rate}
 }
 \value{
 A \code{list} containing the results of MR-BMA analyses. The list includes:
@@ -55,7 +61,7 @@ cad_outcome <- TwoSampleMR::extract_outcome_data(snps = lipid_exposures$SNP, out
 lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
 
 # Run MR-BMA
-mr_bma_res <- mr_bma(lipids_cad_harmonized)
+mr_bma_res <- mr_bma(lipids_cad_harmonized, calculate_p = TRUE, nrepeat = 1000)
 
 # Output best models
 mr_bma_res$model_best

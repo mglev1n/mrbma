@@ -7,6 +7,8 @@
 #' @param harmonized_data (list) Harmonized data of exposures/outcomes of interest, generated using [TwoSampleMR::mv_harmonise_data()]
 #' @param prior_prob (numeric) Prior probability
 #' @param prior_sigma (numeric) Variance of the prior probability
+#' @param kmin (numeric) Minimum model size. By default the model will consider all combinations of exposures (eg. `kmin` = `kmax`), but may become computationally infeasible with >12 exposures. If `kmin` < `kmax`, then a stochastic search is performed.
+#' @param kmax (numeric) Maximum model size. By default the model will consider all combinations of exposures (eg. `kmin` = `kmax`), but may become computationally infeasible with >12 exposures. If `kmin` < `kmax`, then a stochastic search is performed.
 #' @param top (numeric) Number of top models to return in results
 #' @param remove_outliers (logical) Remove outlier variants based on Q-statistic
 #' @param remove_influential (logical) Remove influential variants based on Cook's distance
@@ -32,14 +34,14 @@
 #' lipids_cad_harmonized <- TwoSampleMR::mv_harmonise_data(lipid_exposures, cad_outcome)
 #' 
 #' # Run MR-BMA
-#' mr_bma_res <- mr_bma(lipids_cad_harmonized)
+#' mr_bma_res <- mr_bma(lipids_cad_harmonized, calculate_p = TRUE, nrepeat = 1000)
 #' 
 #' # Output best models
 #' mr_bma_res$model_best
 #' 
 #' # Output marginal inclusion probabilities for each risk factor
 #' mr_bma_res$mip_table
-mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 10, nrepeat = 100000, remove_outliers = TRUE, remove_influential = TRUE, calculate_p = FALSE) {
+mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 10, kmin, kmax, remove_outliers = TRUE, remove_influential = TRUE, calculate_p = FALSE, nrepeat = 100000) {
   # Check inputs
   checkmate::assert_numeric(prior_prob)
   checkmate::assert_numeric(prior_sigma)
@@ -53,7 +55,13 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
   mrbma_input <- mrbma_make_input(harmonized_data)
   mvmr_input <- mrbma_input$mvmr_input
 
-  kmin <- kmax <- length(mrbma_input$mvmr_input@exposure)
+  if(missing(kmin) | missing(kmax)) {
+    kmin <- kmax <- length(mrbma_input$mvmr_input@exposure)
+  }
+  
+  checkmate::assert_numeric(kmin)
+  checkmate::assert_numeric(kmax)
+  
 
   cli::cli_progress_step("Running MR-BMA")
   # can move this so it isn't run redundantly
@@ -91,25 +99,36 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
     as_tibble() %>%
     tidyr::drop_na() %>%
     rename("mip" := 2, "mace" := 3)
+  
+  mrbma_list <- list(
+      "model_best" = mrbma_best_model,
+      "mip_table" = mrbma_mip
+    )
 
+  if (calculate_p) {
+    cli::cli_progress_step("Estimating empirical p-value using {nrepeat} permutations")
+    permutation_res <- create.permutations(mrbma_output, nrepeat = nrepeat, save.matrix = FALSE)
+    pval_res <- calculate.p(mrbma_output, permutation_res)
 
-  if (remove_outliers & remove_influential) {
+    cli::cli_progress_step("Performing Nyholt correction for effective number of tests")
+    nyholt_res <- mrbma_nyholt_correct(mrbma_input = mvmr_input, mrbma_output = mrbma_output, empirical_p = pval_res) %>%
+      as_tibble() %>%
+      tidyr::drop_na() 
+
     mrbma_list <- list(
       "model_best" = mrbma_best_model,
-      "mip_table" = mrbma_mip,
-      "influential_res" = influential_res,
+      "mip_table" = nyholt_res
+    )
+  }
+
+  if (remove_outliers) {
+    mrbma_list <- c(mrbma_list,
       "outlier_res" = outlier_res
     )
-  } else if (remove_outliers) {
-    mrbma_list <- list(
-      "model_best" = mrbma_best_model,
-      "mip_table" = mrbma_mip,
-      "outlier_res" = outlier_res
-    )
-  } else if (remove_influential) {
-    mrbma_list <- list(
-      "model_best" = mrbma_best_model,
-      "mip_table" = mrbma_mip,
+  }
+
+  if (remove_influential) {
+    mrbma_list <- c(mrbma_list,
       "influential_res" = influential_res
     )
   }
@@ -196,8 +215,8 @@ mrbma_nyholt_correct <- function(mrbma_input, mrbma_output, empirical_p) {
     }
   }
   res <- cbind(mrbma_input@exposure, mrbma_output@BMAve_Estimate, empirical_p, p_nyholt)
-  colnames(res) <- c("exposure", "mace", "mip", "p_val", "p_fdr", "p_nyholt")
-  return(res)
+  colnames(res) <- c("rf", "mace", "mip", "p_val", "p_fdr", "p_nyholt")
+  return(res %>% select(rf, mip, mace, p_val, p_fdr, p_nyholt))
 }
 
 #' mrbma_remove_influential

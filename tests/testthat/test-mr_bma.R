@@ -7,9 +7,13 @@ test_that("mr_bma works", {
   mrbma_res <- mr_bma(lipids_cad_harmonized)
   mrbma_res_no_outliers <- mr_bma(lipids_cad_harmonized, remove_outliers = FALSE)
   mrbma_res_no_influential <- mr_bma(lipids_cad_harmonized, remove_influential = FALSE)
+  mrbma_res_nyholt <- mr_bma(lipids_cad_harmonized, calculate_p = TRUE, nrepeat = 100)
+  mrbma_res_kmin <- mr_bma(lipids_cad_harmonized, kmin = 1, kmax = 2)
   expect_type(mrbma_res, "list")
   expect_type(mrbma_res_no_outliers, "list")
   expect_type(mrbma_res_no_influential, "list")
+  expect_type(mrbma_res_nyholt, "list")
+  expect_type(mrbma_res_kmin, "list")
 })
 
 test_that("mr_bma_make_input works", {
