@@ -103,7 +103,8 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
   
   mrbma_list <- list(
       "model_best" = mrbma_best_model,
-      "mip_table" = mrbma_mip
+      "mip_table" = mrbma_mip,
+      "mrbma_output" = mrbma_output
     )
 
   if (calculate_p) {
