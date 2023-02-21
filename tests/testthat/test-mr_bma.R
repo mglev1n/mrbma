@@ -23,3 +23,6 @@ test_that("mr_bma_make_input works", {
   mrbma_input <- mrbma_make_input(lipids_cad_harmonized)
   expect_type(mrbma_input, "list")
 })
+
+
+

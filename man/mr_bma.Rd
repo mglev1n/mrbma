@@ -43,6 +43,7 @@ A \code{list} containing the results of MR-BMA analyses. The list includes:
 \itemize{
 \item \code{model_best} = A \link[tibble:tibble-package]{tibble} containing a list of the top models
 \item \code{mip_table} = A \link[tibble:tibble-package]{tibble} containing the marginal inclusion probabilities of each risk factor
+\item \code{mrbma_output} = Raw output from the \code{summarymvMR_SSS} function
 \item \code{influential_res} = Diagnostic plots representing the detection of influential variants
 \item \code{outlier_res} = Diagnostic plot representing the detection of outlier variants
 }

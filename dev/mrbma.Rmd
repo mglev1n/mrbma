@@ -74,6 +74,7 @@ This first section shows:
 #' @return A `list` containing the results of MR-BMA analyses. The list includes:
 #' - `model_best` = A [tibble][tibble::tibble-package] containing a list of the top models
 #' - `mip_table` = A [tibble][tibble::tibble-package] containing the marginal inclusion probabilities of each risk factor
+#' - `mrbma_output` = Raw output from the `summarymvMR_SSS` function
 #' - `influential_res` = Diagnostic plots representing the detection of influential variants
 #' - `outlier_res` = Diagnostic plot representing the detection of outlier variants
 #'
@@ -155,7 +156,8 @@ mr_bma <- function(harmonized_data, prior_prob = 0.5, prior_sigma = 0.5, top = 1
 
     mrbma_list <- list(
       "model_best" = mrbma_best_model,
-      "mip_table" = nyholt_res
+      "mip_table" = nyholt_res,
+      "mrbma_output" = mrbma_output
     )
   }
 
@@ -228,7 +230,8 @@ test_that("mr_bma works", {
 #'
 #' Internal function to turn result of [TwoSampleMR::mv_harmonise_data()] into `mvMRInput`
 #'
-#'
+#' @return Formatted input
+#' 
 #' @noRd
 # internal function to prepare input
 mrbma_make_input <- function(harmonized_data) {
